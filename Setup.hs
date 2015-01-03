@@ -15,6 +15,7 @@ type Word = String
 
 ----- Types ---------------------
 
+
 ----- Util functions ------------
 
 getDictionary :: IO (Dictionary)
@@ -50,8 +51,8 @@ getLetterFrequencies =
 
 ----- Cleaning data functions ---
 
-filterWordlistOnLength :: Int -> Dictionary -> Dictionary
-filterWordlistOnLength n = filter (\x -> length x == n)
+filterDictionaryOnLength :: Int -> Dictionary -> Dictionary
+filterDictionaryOnLength n = filter (\x -> length x == n)
 
 filterAlpha :: Dictionary -> Dictionary
 filterAlpha = filter (all $ isAlpha)
@@ -64,6 +65,8 @@ filterByLetters []     database = database
 filterByLetters [x]    database = filter (elem x) database
 filterByLetters (x:xs) database = filterByLetters xs $ filter (elem x) database 
 
+filterLetter :: Letter -> Dictionary -> Dictionary
+filterLetter x database = filter (not . elem x) database 
 ----- Cleaning data functions ---
 
 ----- Board functions -----------
@@ -74,8 +77,13 @@ getLettersFromWord board = map snd $ filter (\(_, x) -> if x == '_' || x == ' ' 
 resetGameBoard :: Word -> Board
 resetGameBoard = map (\x -> (x, '_'))
 
-checkLetter :: Board -> Letter -> Board
+checkLetter :: Board -> Letter -> Bool
 checkLetter board letter = 
+  any (True == ) $ map (\(char, _) -> char == letter) board
+  
+
+putLetterOnBoard :: Board -> Letter -> Board
+putLetterOnBoard board letter = 
   map (\(char, under) ->
             if char == letter
             then (char, char) 
@@ -88,16 +96,9 @@ printGameBoard = do putStrLn . map snd
 
 ----- AI functions --------------
 
-guess :: Dictionary -> Board -> IO (Letter, [LetterFreq])
-guess database word = do
-  let availableLetters = getLettersFromWord word
-  let letterFreqencies = getLetterFrequencies $ filterByLetters availableLetters database
-  let char = fst $ head letterFreqencies
-
-  putStrLn "Mmm... Let me think..."
-  putStrLn $ "I'll pick the " ++ [char]
-
-  return (char, tail letterFreqencies)
+getBestLetters database board = 
+  map fst $ getLetterFrequencies $ filterByLetters availableLetters database
+  where availableLetters = getLettersFromWord board
 
 ----- AI functions --------------
 
@@ -110,9 +111,59 @@ interactUntil p message = do
   if p usrInput
   then return usrInput
   else do
-    putStrLn "Please pick an english word."
+    putStrLn "Please pick an English word."
     interactUntil p message
-  
+
+
+-- guess :: Dictionary -> Board -> Letter -> IO ()
+-- guess dictionary board letter = do
+--   putStrLn "Mmm... Let me think..."
+--   putStrLn $ "I'll pick the " ++ [letter]
+
+
+-- checkLetterIO dictionary board letters = do
+--   let letter = head letters
+--   guess dictionary board letter
+-- 
+--   if checkLetter letter
+--   then 
+--     checkLetterIO dictionary board $ tail letters
+--   else 
+--     -- filter, pak nieuwe letters en run de functie opnieuw.
+--     mapM_ putStrLn $ filterByLetters [letter] dictionary
+
+
+
+-- gameLoop :: Dictionary -> Board -> [Letter] -> IO ()
+-- gameLoop dictionary board letters = do
+--   x <- getBestLetters dictionary board
+--   
+--   checkLetterIO
+
+  --let letter = head x
+
+  --if checkLetter board letter
+  --then do putStrLn "the letter is correct"--putLetterOnBoard board letter
+  --else gameLoop dictionary board $ tail x
+
+
+getLetters board dictionary bestLetters = takeWhile (checkLetter board) bestLetters 
+
+getIncorrectLetter correctLetters mostFreqLetters = 
+  last $ take (length correctLetters + 1) mostFreqLetters
+
+
+reFilter correctLetters incorrectLetter board dictionary errors =
+  if length correctLetters < length board
+  then
+    reFilter newCorrectLetters newIncorrectLetter board newDictionary (errors + 1)
+  else 
+    (correctLetters, errors)
+  where 
+    newDictionary      = filterByLetters correctLetters $ filterLetter incorrectLetter dictionary
+    mostFreqLetters    = getBestLetters newDictionary board
+    newCorrectLetters  = getLetters board newDictionary mostFreqLetters
+    newIncorrectLetter = getIncorrectLetter newCorrectLetters mostFreqLetters
 
 
 main :: IO ()
@@ -120,17 +171,30 @@ main = do
   database <- getDictionary
   usrWord <- interactUntil (checkWordInDictionary database) "Enter a word for me to guess:"
 
-  let filteredWordlist = filterLowerCase $ filterAlpha $ filterWordlistOnLength (length usrWord) database
+  let filteredDictionary = filterLowerCase $ filterAlpha $ filterDictionaryOnLength (length usrWord) database
   let gameBoard = resetGameBoard usrWord
 
   printGameBoard gameBoard
 
   putStrLn "Lets start!"
 
-  firstGuess <- guess filteredWordlist gameBoard
 
-  let newGameBoard = checkLetter gameBoard $ fst firstGuess
+  let mostFreqLetters = getBestLetters filteredDictionary gameBoard
+  let correctLetters = getLetters gameBoard filteredDictionary mostFreqLetters
+  let incorrectLetter = getIncorrectLetter correctLetters mostFreqLetters
 
-  printGameBoard newGameBoard
+  print $ fst $ reFilter correctLetters incorrectLetter gameBoard filteredDictionary 0
+  print $ snd $ reFilter correctLetters incorrectLetter gameBoard filteredDictionary 0
 
+
+
+  -- print incorrectLetter
+
+  --mapM_ print correctLetters
+
+  -- mapM_ print filteredFilteredDictionary
+
+ --  if length gameBoard == length correctLetters
+ --  else do
+ --    let filteredFilteredDictionary = filterByLetters 
 
