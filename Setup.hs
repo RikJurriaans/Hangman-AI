@@ -153,7 +153,7 @@ getIncorrectLetter correctLetters mostFreqLetters =
   last $ take (length correctLetters + 1) mostFreqLetters
 
 
-reFilter correctLetters incorrectLetter board dictionary errors =
+reFilter correctLetters incorrectLetter board dictionary errors = 
   if length correctLetters < length board
   then
     reFilter newCorrectLetters newIncorrectLetter board newDictionary (errors + 1)
@@ -178,13 +178,15 @@ main = do
 
   putStrLn "Lets start!"
 
-
   let mostFreqLetters = getBestLetters filteredDictionary gameBoard
   let correctLetters = getLetters gameBoard filteredDictionary mostFreqLetters
   let incorrectLetter = getIncorrectLetter correctLetters mostFreqLetters
 
-  print $ fst $ reFilter correctLetters incorrectLetter gameBoard filteredDictionary 0
-  print $ snd $ reFilter correctLetters incorrectLetter gameBoard filteredDictionary 0
+  let letters = reFilter correctLetters incorrectLetter gameBoard filteredDictionary 0
+
+  -- reFilter correctLetters incorrectLetter gameBoard filteredDictionary 0
+  print $ snd $ letters
+  print $ fst $ letters
 
 
 
