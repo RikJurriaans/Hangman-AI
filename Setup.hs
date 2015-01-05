@@ -115,55 +115,29 @@ interactUntil p message = do
     interactUntil p message
 
 
--- guess :: Dictionary -> Board -> Letter -> IO ()
--- guess dictionary board letter = do
---   putStrLn "Mmm... Let me think..."
---   putStrLn $ "I'll pick the " ++ [letter]
-
-
--- checkLetterIO dictionary board letters = do
---   let letter = head letters
---   guess dictionary board letter
--- 
---   if checkLetter letter
---   then 
---     checkLetterIO dictionary board $ tail letters
---   else 
---     -- filter, pak nieuwe letters en run de functie opnieuw.
---     mapM_ putStrLn $ filterByLetters [letter] dictionary
-
-
-
--- gameLoop :: Dictionary -> Board -> [Letter] -> IO ()
--- gameLoop dictionary board letters = do
---   x <- getBestLetters dictionary board
---   
---   checkLetterIO
-
-  --let letter = head x
-
-  --if checkLetter board letter
-  --then do putStrLn "the letter is correct"--putLetterOnBoard board letter
-  --else gameLoop dictionary board $ tail x
-
-
+getLetters :: Board -> Dictionary -> [Letter] -> [Letter]
 getLetters board dictionary bestLetters = takeWhile (checkLetter board) bestLetters 
 
+getIncorrectLetter :: [Letter] -> [Letter] -> Letter
 getIncorrectLetter correctLetters mostFreqLetters = 
-  last $ take (length correctLetters + 1) mostFreqLetters
+  if length correctLetters == 0 
+  then head mostFreqLetters
+  else last $ take (length correctLetters + 1) mostFreqLetters
 
 
-reFilter correctLetters incorrectLetter board dictionary errors = 
-  if length correctLetters < length board
+-- getGuesses :: [Letter] -> Letter -> Board -> Dictionary -> ([Letter], Int) -> Int -> ([Letter], Int)
+getGuesses correctLetters incorrectLetter board dictionary result errors = 
+  if length correctLetters < length board && errors <= 9
   then
-    reFilter newCorrectLetters newIncorrectLetter board newDictionary (errors + 1)
+    getGuesses newCorrectLetters newIncorrectLetter board newDictionary newResult (errors + 1)
   else 
-    (correctLetters, errors)
+    (newResult, errors)
   where 
     newDictionary      = filterByLetters correctLetters $ filterLetter incorrectLetter dictionary
     mostFreqLetters    = getBestLetters newDictionary board
     newCorrectLetters  = getLetters board newDictionary mostFreqLetters
     newIncorrectLetter = getIncorrectLetter newCorrectLetters mostFreqLetters
+    newResult          = result ++ (drop (length correctLetters) newCorrectLetters) ++ [incorrectLetter]
 
 
 main :: IO ()
@@ -182,21 +156,8 @@ main = do
   let correctLetters = getLetters gameBoard filteredDictionary mostFreqLetters
   let incorrectLetter = getIncorrectLetter correctLetters mostFreqLetters
 
-  let letters = reFilter correctLetters incorrectLetter gameBoard filteredDictionary 0
+  let letters = getGuesses correctLetters incorrectLetter gameBoard filteredDictionary "" 0
 
-  -- reFilter correctLetters incorrectLetter gameBoard filteredDictionary 0
-  print $ snd $ letters
   print $ fst $ letters
-
-
-
-  -- print incorrectLetter
-
-  --mapM_ print correctLetters
-
-  -- mapM_ print filteredFilteredDictionary
-
- --  if length gameBoard == length correctLetters
- --  else do
- --    let filteredFilteredDictionary = filterByLetters 
+  print $ snd $ letters
 
