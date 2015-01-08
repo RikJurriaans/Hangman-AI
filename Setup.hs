@@ -139,6 +139,28 @@ getGuesses correctLetters incorrectLetter board dictionary result errors =
     newIncorrectLetter = getIncorrectLetter newCorrectLetters mostFreqLetters
     newResult          = result ++ (drop (length correctLetters) newCorrectLetters) ++ [incorrectLetter]
 
+printGameStatus :: Board -> Int -> IO ()
+printGameStatus board errors = 
+  if errors > 9
+  then putStrLn "The computer loses"
+  else putStrLn "The computer wins"
+
+play :: Board -> [Letter] -> Int -> IO ()
+play board [x] errors = do
+  let newBoard = putLetterOnBoard board x
+  putStrLn $ "I chose: " ++ [x]
+  printGameBoard newBoard
+
+  printGameStatus newBoard errors
+
+play board (x:xs) errors = do
+  let newBoard = putLetterOnBoard board x
+  putStrLn $ "I chose: " ++ [x]
+  printGameBoard newBoard
+  
+  if newBoard == board
+  then play newBoard xs $ errors + 1
+  else play newBoard xs errors  
 
 main :: IO ()
 main = do
@@ -148,8 +170,6 @@ main = do
   let filteredDictionary = filterLowerCase $ filterAlpha $ filterDictionaryOnLength (length usrWord) database
   let gameBoard = resetGameBoard usrWord
 
-  printGameBoard gameBoard
-
   putStrLn "Lets start!"
 
   let mostFreqLetters = getBestLetters filteredDictionary gameBoard
@@ -158,6 +178,8 @@ main = do
 
   let letters = getGuesses correctLetters incorrectLetter gameBoard filteredDictionary "" 0
 
-  print $ fst $ letters
-  print $ snd $ letters
+  print $ fst letters
+  print $ snd letters
+
+  -- play gameBoard (fst letters) 0
 
